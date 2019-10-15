@@ -80,6 +80,8 @@ def plot_wavelet_spectral(scale_min, scale_max, wavelet_name):
     # data = np.column_stack([time, dat])
 
     # np.savetxt('./sst_nino3.txt', data)
+    if wavelet_name == 'cmor':
+        wavelet_name = 'cmor1.5-1.0'
 
     coef, freq = pywt.cwt(dat, scales, wavelet_name, dt)
     power = (np.abs(coef))**2
@@ -158,8 +160,7 @@ def wavelet_app():
         scale_min = FloatSlider(value=0.5,min=0.5, max = 10, step=0.5, continuous_update = False, description='Scale_min:',layout=Layout(width='auto', height='auto')),
         scale_max = FloatSlider(value=128,min=2, max = 500, step=2, continuous_update = False, description='Scale_max:',layout=Layout(width='auto', height='auto')),
         wavelet_name = Dropdown(
-            options=['morl','cmor', 
-                    'cmor1.5-1.0'],
+            options=['morl','cmor'],
             value='morl',
             description='Wavelet family:',
             disabled=False,
