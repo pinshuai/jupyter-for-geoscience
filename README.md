@@ -1,3 +1,5 @@
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pinshuai/jupyter-for-geoscience/master?filepath=index.ipynb)
+
 # A collection of Jupyter notebooks for geoscientists
 
 ## Motivation
@@ -20,7 +22,7 @@ This collection of notebooks are targeted at hydrologic and hydrogeologic datase
 
 
 - Download and visualize hydrologic data from USGS 
-- Spectral analysis of time-series data using Fast Fourier Transform and Wavelet Transform
+- [wavelet.ipynb](wavelet.ipynb): Spectral analysis of time-series data using Fast Fourier Transform and Wavelet Transform
 - Interpolation of spatial data using various geostatistical methods
 - Multi-variate analysis
 - Groundwater flow simulation with FloPy
