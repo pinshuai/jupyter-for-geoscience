@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pinshuai/jupyter-for-geoscience/master?filepath=index.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pinshuai/jupyter-for-geoscience/master?urlpath=lab/tree/index.ipynb)
 
 # A collection of Jupyter notebooks for geoscientists
 
