@@ -18,11 +18,12 @@ Our goal is to help researchers gain scientific insights from the raw data much 
 - All computation and analysis are fully reproducible
 - All notebooks are free and open-source
 
+## Examples
 This collection of notebooks are targeted at hydrologic and hydrogeologic dataset in particular. However, the workflow and methodology can be applied to geology, geophysics, atmospheric science and other field. Here are some notebooks example and the list is not exhaustive.
 
 
 - Download and visualize hydrologic data from USGS 
-- [wavelet.ipynb](wavelet.ipynb): Spectral analysis of time-series data using Fast Fourier Transform and Wavelet Transform
+- [wavelet.ipynb](wavelet.ipynb): Spectral analysis of time-series data using Wavelet Transform
 - Interpolation of spatial data using various geostatistical methods
 - Multi-variate analysis
 - Groundwater flow simulation with FloPy
