@@ -1,4 +1,4 @@
-pywt
+pywavelets
 numpy
 pandas
 matplotlib
