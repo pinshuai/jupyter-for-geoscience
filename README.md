@@ -22,8 +22,8 @@ We aim to provide a collection of Jupyter notebooks with each performing specifi
 This collection of notebooks are targeted at hydrologic and hydrogeologic dataset in particular. However, the workflow and methodology can be applied to geology, geophysics, atmospheric science and other field. Here are some notebooks example and the list is not exhaustive.
 
 
-- Download and visualize hydrologic data from USGS 
-- [wavelet.ipynb](wavelet.ipynb): Spectral analysis of time-series data using Wavelet Transform
+- [USGS_data_retrieval.ipynb](./notebooks/USGS_data_retrieval.ipynb): Download and visualize hydrologic data from USGS 
+- [wavelet.ipynb](./notebooks/wavelet.ipynb): Spectral analysis of time-series data using Wavelet Transform
 - Interpolation of spatial data using various geostatistical methods
 - Multi-variate analysis
 - Groundwater flow simulation with FloPy
