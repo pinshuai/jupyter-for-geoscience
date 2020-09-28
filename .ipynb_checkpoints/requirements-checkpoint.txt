@@ -1,6 +1,0 @@
-pywt
-numpy
-pandas
-matplotlib
-ipywidgets
-mpl_toolkits
