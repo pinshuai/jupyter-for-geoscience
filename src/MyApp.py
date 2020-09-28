@@ -184,14 +184,11 @@ def wavelet_app():
 
 # ------------ geo visualization ------------------
 import geopandas as gpd
-import pandas as pd
 import geoplot as gplt
 import geoplot.crs as gcrs
 import imageio
 import pathlib
-import matplotlib.pyplot as plt
 import mapclassify as mc
-import numpy as np
 import shapely
 
 def geospatial_viz(geo_data_url, 
@@ -298,11 +295,11 @@ def geospatial_viz(geo_data_url,
 def viz_app():
     app = widgetify(
             geospatial_viz,
-            url1 = Text(value = 'https://raw.githubusercontent.com/ResidentMario/geoplot-data/master/contiguous-usa.geojson', 
+           geo_data_url = Text(value = 'https://raw.githubusercontent.com/ResidentMario/geoplot-data/master/contiguous-usa.geojson',
                         placeholder = 'Type something', 
                         description = 'geo data path1:', 
                         disabled = False),
-            url2 = Text(value = None, 
+            point_data_url = Text(value = 'No point attribute data',
                         placeholder = 'Type something', 
                         description = 'geo data path2:', 
                         disabled = False),
