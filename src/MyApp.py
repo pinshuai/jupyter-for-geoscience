@@ -182,3 +182,139 @@ def wavelet_app():
     )
     return app
 
+# ------------ geo visualization ------------------
+import geopandas as gpd
+import pandas as pd
+import geoplot as gplt
+import geoplot.crs as gcrs
+import imageio
+import pathlib
+import matplotlib.pyplot as plt
+import mapclassify as mc
+import numpy as np
+import shapely
+
+def geospatial_viz(geo_data_url, 
+                   point_data_url=None, 
+                   att_var=None, 
+                   map_type=None):
+    
+    '''
+    function to visualize the attribute information in map. (eg, population in states)
+    geo_att_data: geodataframe that contains both geometry and attributes info
+    att_var: the attributes to be visualized in the map
+    map_type: string, the type of map to be viz. pointplot, choropleth, voronoi
+    
+    if point_data = None, att_var must be from geo_data
+    
+    '''
+    geo_data = gpd.read_file(geo_data_url)
+    print(geo_data.head())
+    
+
+    if point_data_url == 'No point attribute data':
+        if att_var is None:
+            ax = gplt.polyplot(geo_data, figsize = (10,5))
+            ax.set_title('plain map of continental USA', fontsize = 16)
+        else:
+            if map_type == 'choropleth':
+                scheme = mc.FisherJenks(geo_data[att_var], k = 5)
+                labels = scheme.get_legend_classes()
+                ax = gplt.polyplot(geo_data, projection = gcrs.AlbersEqualArea())
+                gplt.choropleth(geo_data,
+                                hue = att_var,
+                                edgecolor = 'white',
+                                linewidth = 1,
+                                cmap = 'Blues',
+                                legend = True,
+                                scheme = scheme,
+                                legend_labels = labels,
+                                ax = ax)
+                ax.set_title('{} in the continental US'.format(att_var), 
+                             fontsize = 16)
+                
+            if map_type == "cartogram":
+                gplt.cartogram(geo_data,
+                               scale = att_var,
+                               edgecolor = 'black',
+                               projection = gcrs.AlbersEqualArea())
+                
+                
+    else:
+        point_data = gpd.read_file(point_data_url)
+        scheme = mc.Quantiles(point_data[att_var], k = 5)
+        labels = scheme.get_legend_classes()
+        
+        if map_type == 'pointplot':
+            if isinstance(point_data.geometry[0],shapely.geometry.point.Point):
+                ax = gplt.polyplot(geo_data,
+                                   edgecolor = 'white',
+                                   facecolor = 'lightgray',
+                                   figsize = (12, 8)
+                                   #projection = gcrs.AlbersEqualArea()
+                                   )
+                gplt.pointplot(point_data,
+                               ax = ax,
+                               hue = att_var,
+                               cmap = 'Blues',
+                               scheme = scheme,
+                               scale = att_var,
+                               legend = True,
+                               legend_var = 'scale',
+                               legend_kwargs = {"loc": 'lower right'},
+                               legend_labels = labels)
+                ax.set_title('Cities in the continental US, by population 2010', 
+                             fontsize=16)
+            else:
+                print('Geometry data type not valid')
+        
+        if map_type == "voronoi":
+            # check uniqueness of coordinates
+            duplicates = point_data.geometry.duplicated()
+            point_data_unique = point_data[-duplicates]
+            proj = gplt.crs.AlbersEqualArea(central_longitude=-98,
+                               central_latitude=39.5)
+            
+            ax = gplt.voronoi(point_data_unique, 
+                 hue = att_var,
+                 clip = geo_data,
+                 projection = proj,
+                 cmap = 'Blues',
+                 legend = True,
+                 edgecolor = "white",
+                 linewidth = 0.01)
+            
+            gplt.polyplot(geo_data,
+                          ax = ax,
+                          extent = geo_data.total_bounds,
+                          edgecolor = "black",
+                          linewidth = 1,
+                          zorder = 1)
+            plt.title("{} in US cities".format(att_var), fontsize = 16)
+            
+
+            
+
+def viz_app():
+    app = widgetify(
+            geospatial_viz,
+            url1 = Text(value = 'https://raw.githubusercontent.com/ResidentMario/geoplot-data/master/contiguous-usa.geojson', 
+                        placeholder = 'Type something', 
+                        description = 'geo data path1:', 
+                        disabled = False),
+            url2 = Text(value = None, 
+                        placeholder = 'Type something', 
+                        description = 'geo data path2:', 
+                        disabled = False),
+            att_var = Text(value = 'population', 
+                           placeholder = 'Type something',
+                           description = 'attribute variable',
+                           disabled = False),
+            map_type = Dropdown(
+                    options = ['choropleth', 'cartogram', 'pointplot', 'voronoi'],
+                    value = 'choropleth',
+                    description = 'map type',
+                    disabled = False)
+    )
+    return app
+            
