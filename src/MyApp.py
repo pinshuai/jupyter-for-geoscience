@@ -10,6 +10,22 @@ from scipy import signal
 import ipywidgets
 from ipywidgets import *
 
+# for geospatial visualization
+import geopandas as gpd
+import geoplot as gplt
+import geoplot.crs as gcrs
+import imageio
+import pathlib
+import mapclassify as mc
+import shapely
+
+# for PCA
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from IPython.display import display
+import seaborn as sns
+
 
 # from __future__ import print_function
 # from __future__ import absolute_import
@@ -183,13 +199,6 @@ def wavelet_app():
     return app
 
 # ------------ geo visualization ------------------
-import geopandas as gpd
-import geoplot as gplt
-import geoplot.crs as gcrs
-import imageio
-import pathlib
-import mapclassify as mc
-import shapely
 
 def geospatial_viz(geo_data_url, 
                    point_data_url=None, 
@@ -314,4 +323,234 @@ def viz_app():
                     disabled = False)
     )
     return app
+   
+# ----------------------- function and app for PCA ---------------------------------
+def pca_summary(pca, standardised_data, out=True):
+    names = ["PC"+str(i) for i in range(1, len(pca.explained_variance_ratio_)+1)]
+    a = list(np.std(pca.transform(standardised_data), axis=0))
+    b = list(pca.explained_variance_ratio_)
+    c = [np.sum(pca.explained_variance_ratio_[:i]) for i in range(1, len(pca.explained_variance_ratio_)+1)]
+    columns = pd.MultiIndex.from_tuples([("sdev", "Standard deviation"), ("varprop", "Proportion of Variance"), ("cumprop", "Cumulative Proportion")])
+    summary = pd.DataFrame(zip(a, b, c), index=names, columns=columns)
+    if out:
+        print("Importance of components:")
+        display(summary)
+    return summary
+
+
+def loading_display(pca, n_components):
+    for i in range(n_components):
+        print('loadings for PC{}:'.format(i+1), pca.components_[i])
+    
+
+def calcpc(standardizedFeatures, loadings):
+    """
+    calculate the values for each principle component.
+    find the number of samples in the data set and the number of variables
+    """ 
+    variables = standardizedFeatures
+    if isinstance(variables, np.ndarray):
+        variables = pd.DataFrame(variables)
+    
+    numsamples, numvariables = variables.shape
+    # make a vector to store the component
+    pc = np.zeros(numsamples)
+    # calculate the value of the component for each sample
+    for i in range(numsamples):
+        valuei = 0
+        for j in range(numvariables):
+            valueij = variables.iloc[i, j]
+            loadingj = loadings[j]
+            valuei = valuei + (valueij * loadingj)
+        pc[i] = valuei
+    
+    return pc
+
+def pc_display(standardizedFeatures, component_to_show, pca):
+    
+    standardizedFeatures = standardizedFeatures
+    numsamples = standardizedFeatures.shape[0]
+    loadings = pca.components_[component_to_show-1]
+    pc = calcpc(standardizedFeatures, loadings)
+    
+    pc = pd.DataFrame(pc, index = ['sample_{}'.format(i) for i in range(1, numsamples+1)], 
+                              columns = ['PC{} value'.format(component_to_show)])
+    print('PC{} value for each Sample:'.format(component_to_show), pc)
+    return pc
+    
+def screeplot(pca, standardised_values):
+    y = np.std(pca.transform(standardised_values), axis=0)**2 # get variance, i.e. (sdev)**2
+    x = np.arange(len(y)) + 1
+    plt.plot(x, y, "o-")
+    plt.xticks(x, ["PC"+str(i) for i in x], rotation=0)
+    plt.ylabel("Variance")
+    plt.show()
+    return y
+
+def get_PCnumber(pca, standardised_values):
+    # step one: plot the variance w.r.t pc
+    y = screeplot(pca, standardised_values)
+    
+    n = len(y[y > 1])
+    
+    return n
+
+
+def pca_biplot(pca, standardised_values, classifs, labels = None):
+    """
+    Add loading vectors to the PCA scatter plot. note the PCA scores have been normalized.
+    
+    Inputs:
+        pca--pca component
+        standardised_values--scaled values with mean of 0 and std of 1
+        classifs--hue label
+        labels--variable name list
+    """
+    score = pca.transform(standardised_values) 
+    xs = score[:,0]
+    ys = score[:,1]
+    scalex = 1.0/(xs.max() - xs.min())
+    scaley = 1.0/(ys.max() - ys.min())    
+    coeff = np.transpose(pca.components_[0:2, :])
+    n = coeff.shape[0]
+    bar = pd.DataFrame(zip(xs*scalex, ys*scaley, classifs), columns=["PC1", "PC2", "Class"])
+    sns.lmplot("PC1", "PC2", bar, hue="Class", fit_reg=False)
+    # add loading vectors
+    for i in range(n):
+        plt.arrow(0, 0, coeff[i,0], coeff[i,1],color = 'slategray',alpha = 1)
+        if labels is None:
+            plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, "Var"+str(i+1), color = 'k', 
+                     ha = 'center', va = 'center')
+        else:
+            plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'k', 
+                     ha = 'center', va = 'center')
             
+    # add variance explained on the x,y labels
+    summary = pca_summary(pca, standardised_values)
+    plt.xlabel('PC1 ({:.1f}%)'.format(summary.varprop.loc['PC1', 'Proportion of Variance']*100))
+    plt.ylabel('PC2 ({:.1f}%)'.format(summary.varprop.loc['PC2', 'Proportion of Variance']*100))
+    plt.xlim(-1,1)
+    plt.ylim(-1,1)
+
+# the main function to be used in widgtify
+def PCA_pipeline(data_path, target_col, n_components, loadings, PC_value,
+                 component_to_show = 1, get_the_best_number_PC = True, visualization_2D = True, biplot = True):
+    
+    # step 1, take in all the parameters specified by user
+    data_path = data_path
+    # check data type
+    if data_path.split('.')[-1] in ['csv', 'txt', 'data']:
+        data = pd.read_csv(data_path)
+    
+    if data_path.split('.')[-1] in ['xlsx']:
+        data = pd.read_excel('data_path') # need further editing
+    
+    if target_col == 'no target variable':
+        feature_cols = data.columns.tolist()
+    else:
+        target_col = target_col
+        feature_cols = data.columns.tolist()
+        feature_cols.remove(target_col)
+        
+    if n_components > len(feature_cols):
+        print('number of components should be equal or less than number of features')
+    else:
+        n_components = n_components
+    
+    loadings = loadings
+    if PC_value:
+        component_to_show = int(component_to_show)
+        if component_to_show > len(feature_cols):
+            print('no principle component {}'.format(component_to_show))
+        else:
+            component_to_show = component_to_show
+            
+    # step 2, based on the parameters taken in, organize the pipeline
+    # a) perform pca
+    features = data.loc[:, feature_cols].values
+    target = data.loc[:, target_col].values
+    
+    features = StandardScaler().fit_transform(features)
+
+    
+    pca = PCA(n_components = n_components).fit(features)
+    pca_summary(pca, features)
+    
+    # loadings for the principle components. 
+    if loadings:
+        loading_display(pca, n_components)
+        
+    
+    if PC_value:
+        pc_display(features, component_to_show, pca)
+    
+    # b) get the best number of components to be retained
+    if get_the_best_number_PC:
+        n = get_PCnumber(pca, features)
+        print('Best number of PCs to be retained:', n)
+        
+    if visualization_2D:
+        principalComponents = PCA(n_components=2).fit_transform(features)
+        principalDf = pd.DataFrame(data = principalComponents, 
+                                   columns = ['principal component 1', 'principal component 2'])
+        finalDf = pd.concat([principalDf, data[target_col]], axis = 1)
+        
+        fig = plt.figure(figsize = (8,8))
+        ax = fig.add_subplot(1,1,1) 
+        ax.set_xlabel('Principal Component 1', fontsize = 15)
+        ax.set_ylabel('Principal Component 2', fontsize = 15)
+        ax.set_title('2 component PCA', fontsize = 20)
+        targets = finalDf[target_col].unique().tolist()
+        colors = ['r', 'g', 'b']
+        for target, color in zip(targets,colors):
+            indicesToKeep = finalDf[target_col] == target
+            ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
+                       , finalDf.loc[indicesToKeep, 'principal component 2']
+                       , c = color
+                       , s = 50)
+        ax.legend(targets)
+        ax.grid()
+        
+    if biplot:
+        pca_biplot(pca, features, data[target_col].values, labels = data.columns[1:])
+        
+        
+
+def pca_app():
+    app = widgetify(
+            PCA_pipeline,
+            data_path = Text(value = '../data/wine.csv',
+                             placeholder = 'Type data path',
+                             description = 'data path',
+                             disabled = False),
+            target_col = Text(value = 'class',
+                               placeholder = 'Type the target variable',
+                               description = 'target variable',
+                               disabled = False),
+            n_components = IntSlider(value = 3, min = 1, max = 20, step = 1,
+                                     continuous_update = False, 
+                                     description = 'number of PC to be shown',
+                                     layout = Layout(width = 'auto', height = 'auto')),
+            loadings = Checkbox(value = False,
+                                description = "show loadings",
+                                disabled = False),
+            PC_value = Checkbox(value = False, 
+                                description = 'show principal component values',
+                                disabled = False),
+            component_to_show = widgets.Dropdown(
+               options=['1', '2', '3'],
+               value= '1',
+               description = 'which PC value to show',
+               disabled = False),
+            get_the_best_number_PC = Checkbox(value = True,
+                                              description = 'number of PC retained',
+                                              disabled = False),
+            visualization_2D = Checkbox(value = True,
+                                        description = 'plot 2 dimensional data',
+                                        disabled = False),
+            biplot = Checkbox(value = True,
+                              description = 'biplot',
+                              disabled = False))
+    
+    return app
+    
