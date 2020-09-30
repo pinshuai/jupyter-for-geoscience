@@ -25,7 +25,7 @@ This collection of notebooks are targeted at hydrologic and hydrogeologic datase
 - [USGS_data_retrieval.ipynb](./notebooks/USGS_data_retrieval.ipynb): Download and visualize hydrologic data from USGS 
 - [wavelet.ipynb](./notebooks/wavelet.ipynb): Spectral analysis of time-series data using Wavelet Transform
 - [visualization.ipynb](./notebooks/visualization.ipynb): geospatial data visualization on maps
-- [PCA.ipynb](./notebooks/PCA.ipynb): principle component analysis
+- [PCA.ipynb](./notebooks/PCA_viz.ipynb): principle component analysis
 - Interpolation of spatial data using various geostatistical methods
 - Multi-variate analysis
 - Groundwater flow simulation with FloPy
